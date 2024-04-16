@@ -13,12 +13,12 @@ var logger *log.Logger
 type Adapter struct {
 	IsConnected bool
 	Logger      *log.Logger
-	Config      Config
+	Config      *Config
 	db          *gorm.DB
 }
 
-func NewAdapter(c Config, l *log.Logger) *Adapter {
-	// Assigin logger
+func NewAdapter(c *Config, l *log.Logger) *Adapter {
+	// Assign logger
 	l.Printf("Created new MySQL adapter")
 
 	return &Adapter{Config: c, Logger: l, IsConnected: false}
@@ -29,7 +29,7 @@ func DefaultAdapter() *Adapter {
 	log := log.Default()
 	log.SetPrefix("mysql-adapter")
 
-	return NewAdapter(*DefaultConfig(), log)
+	return NewAdapter(DefaultConfig().SetLogger(log), log)
 }
 
 func (a *Adapter) GetDb() *gorm.DB {
@@ -44,7 +44,7 @@ func (a *Adapter) Connect() error {
 		if err == nil {
 			a.IsConnected = true
 			a.db = db
-			a.Logger.Printf("Attempt %d: Connection to db sucessfully established", i)
+			a.Logger.Printf("Attempt %d: Connection to db successfully established", i)
 			break
 		}
 
@@ -64,7 +64,7 @@ func (a *Adapter) Connect() error {
 }
 
 func (a *Adapter) IsDbConnectionAvailable() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(a.Config.GetDsn()), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(a.Config.Dsn.Dsn()), &gorm.Config{})
 
 	if err != nil {
 		a.Logger.Printf("Could not connect to db %v", err)

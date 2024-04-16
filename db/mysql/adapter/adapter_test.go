@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewAdapter(t *testing.T) {
-	conf := Config{}
+	conf := &Config{}
 	l := log.Default()
 	l.SetPrefix("mysql-adapter")
 	a := NewAdapter(conf, l)
@@ -19,6 +19,11 @@ func TestNewAdapter(t *testing.T) {
 
 func TestDefaultAdapter(t *testing.T) {
 	a := DefaultAdapter()
-
 	assert.Equal(t, "mysql-adapter", a.Logger.Prefix())
+}
+
+func TestIsDbConnectionAvailableError(t *testing.T) {
+	a := DefaultAdapter()
+	_, err := a.IsDbConnectionAvailable()
+	assert.NotEqual(t, err, nil)
 }

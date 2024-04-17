@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -12,16 +13,20 @@ const (
 )
 
 type Config struct {
-	dsn         string
+	Dsn         *Dsn
 	maxAttempts int
 	interval    time.Duration
+	Logger      *log.Logger
 }
 
-func NewConfig(dsn string, maxAttempts int, interval time.Duration) *Config {
-	return &Config{dsn: dsn, maxAttempts: maxAttempts, interval: interval}
+func NewConfig(dsn *Dsn, maxAttempts int, interval time.Duration) *Config {
+	return &Config{Dsn: dsn, maxAttempts: maxAttempts, interval: interval}
 }
 
 func DefaultConfig() *Config {
+	// Create logger
+	logger := log.Default()
+
 	// Check if MySQL attempts have been defined in env
 	max := os.Getenv("MYSQL_MAX_ATTEMPTS")
 	maxAttempts := DEFAULT_MYSQL_MAX_ATTEMPTS
@@ -51,63 +56,87 @@ func DefaultConfig() *Config {
 	}
 
 	if logger != nil {
-		logger.Printf("Adapter configured to attempt connection every %d to mysql", interval)
+		logger.Printf("Adapter configured to attempt connection every %d seconds to mysql", interval/time.Second)
 	}
 
-	return NewConfig(
-		getDefaultDsn(),
-		maxAttempts,
-		interval)
+	// Create new config
+	c := &Config{}
+
+	// Load DSN from env
+	c.Dsn = c.dsnFromDefaults()
+	c.SetInterval(interval).
+		SetLogger(logger).
+		SetMaxAttempts(maxAttempts)
+
+	return c
 }
 
-func (c *Config) GetDsn() string {
-	return c.dsn
+func (c *Config) GetDsn() *Dsn {
+	return c.Dsn
 }
 
 func (c *Config) GetMaxAttempts() int {
 	return c.maxAttempts
 }
 
+func (c *Config) SetMaxAttempts(maxAttempts int) *Config {
+	c.maxAttempts = maxAttempts
+
+	return c
+}
+
 func (c *Config) GetInterval() time.Duration {
 	return c.interval
 }
 
-func getDefaultDsn() string {
+func (c *Config) SetInterval(interval time.Duration) *Config {
+	c.interval = interval
+
+	return c
+}
+
+func (c *Config) SetLogger(logger *log.Logger) *Config {
+	c.Logger = logger
+
+	return c
+}
+
+func (c *Config) dsnFromDefaults() *Dsn {
 	// Get MySQL envs
 	user := os.Getenv("MYSQL_USER")
 	if user != "" {
-		if logger != nil {
-			logger.Printf("Read MySQL user from MYSQL_USER env: %s", user)
+		if c.Logger != nil {
+			c.Logger.Printf("Read MySQL user from MYSQL_USER env: %s", user)
 		}
 	}
 
 	password := os.Getenv("MYSQL_PASSWORD")
 	if password != "" {
-		if logger != nil {
-			logger.Printf("Read MySQL password from MYSQL_PASSWORD env")
+		if c.Logger != nil {
+			c.Logger.Printf("Read MySQL password from MYSQL_PASSWORD env")
 		}
 	}
 
 	host := os.Getenv("MYSQL_HOST")
 	if host != "" {
-		if logger != nil {
-			logger.Printf("Read MySQL host from MYSQL_HOST env %s", host)
+		if c.Logger != nil {
+			c.Logger.Printf("Read MySQL host from MYSQL_HOST env %s", host)
 		}
 	}
 
 	port := os.Getenv("MYSQL_PORT")
 	if port != "" {
-		if logger != nil {
-			logger.Printf("Read MySQL port from MYSQL_PORT env %s", port)
+		if c.Logger != nil {
+			c.Logger.Printf("Read MySQL port from MYSQL_PORT env %s", port)
 		}
 	}
 
 	database := os.Getenv("MYSQL_DATABASE")
 	if database != "" {
-		if logger != nil {
-			logger.Printf("Read MySQL database from MYSQL_DATABASE env %s", database)
+		if c.Logger != nil {
+			c.Logger.Printf("Read MySQL database from MYSQL_DATABASE env %s", database)
 		}
 	}
 
-	return user + ":" + password + "@tcp(" + host + ":" + port + ")" + "/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
+	return NewDsn(user, password, database).SetHost(host).SetPort(port)
 }

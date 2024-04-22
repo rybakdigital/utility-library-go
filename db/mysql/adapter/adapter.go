@@ -1,8 +1,9 @@
 package adapter
 
 import (
-	"log"
 	"time"
+
+	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -26,10 +27,9 @@ func NewAdapter(c *Config, l *log.Logger) *Adapter {
 
 func DefaultAdapter() *Adapter {
 	// Create logger
-	log := log.Default()
-	log.SetPrefix("mysql-adapter")
+	log := log.NewLogger("mysql-adapter")
 
-	return NewAdapter(DefaultConfig().SetLogger(log), log)
+	return NewAdapter(DefaultConfig(), log)
 }
 
 func (a *Adapter) GetDb() *gorm.DB {

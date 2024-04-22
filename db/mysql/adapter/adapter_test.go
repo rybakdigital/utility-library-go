@@ -1,16 +1,16 @@
 package adapter
 
 import (
-	"log"
 	"testing"
+
+	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
 	"github.com/go-playground/assert/v2"
 )
 
 func TestNewAdapter(t *testing.T) {
 	conf := &Config{}
-	l := log.Default()
-	l.SetPrefix("mysql-adapter")
+	l := log.NewLogger("mysql-adapter")
 	a := NewAdapter(conf, l)
 	assert.Equal(t, a.IsConnected, false)
 	assert.Equal(t, a.Config, conf)
@@ -19,7 +19,7 @@ func TestNewAdapter(t *testing.T) {
 
 func TestDefaultAdapter(t *testing.T) {
 	a := DefaultAdapter()
-	assert.Equal(t, "mysql-adapter", a.Logger.Prefix())
+	assert.Equal(t, "mysql-adapter", a.Logger.Module)
 }
 
 func TestIsDbConnectionAvailableError(t *testing.T) {

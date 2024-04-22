@@ -1,7 +1,7 @@
 package utility_library_go_test
 
 import (
-	"log"
+	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,8 +17,7 @@ var _ = Describe("Db/Mysql/Adapter/Integrationtests/Adapter", func() {
 		})
 
 		It("should be able to connect to db", func() {
-			logger := log.Default()
-			logger.SetPrefix("mysql-adapter")
+			logger := log.NewLogger("mysql-adapter")
 			c := adapter.NewConfig(adapter.NewDsn("testuser", "testpassword", "test").SetPort("8886"), 5, 5)
 			a := adapter.NewAdapter(c, logger)
 			_, err := a.IsDbConnectionAvailable()
@@ -26,8 +25,7 @@ var _ = Describe("Db/Mysql/Adapter/Integrationtests/Adapter", func() {
 		})
 
 		It("should establish connection", func() {
-			logger := log.Default()
-			logger.SetPrefix("mysql-adapter")
+			logger := log.NewLogger("mysql-adapter")
 			c := adapter.NewConfig(adapter.NewDsn("testuser", "testpassword", "test").SetPort("8886"), 5, 5)
 			a := adapter.NewAdapter(c, logger)
 			err := a.Connect()

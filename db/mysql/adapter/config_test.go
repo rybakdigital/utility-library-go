@@ -1,11 +1,12 @@
 package adapter
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
 	"github.com/go-playground/assert/v2"
 )
@@ -41,7 +42,7 @@ func TestGetDefaultDsn(t *testing.T) {
 	os.Setenv("MYSQL_HOST", host)
 	os.Setenv("MYSQL_PORT", port)
 	os.Setenv("MYSQL_DATABASE", db)
-	c := &Config{Logger: log.Default()}
+	c := &Config{Logger: log.NewLogger("mysql-config")}
 	assert.Equal(t, defaultDsn, c.dsnFromDefaults())
 }
 

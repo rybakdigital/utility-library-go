@@ -1,10 +1,11 @@
 package adapter
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"time"
+
+	log "github.com/rybakdigital/utility-library-go/logging/logger"
 )
 
 const (
@@ -25,7 +26,7 @@ func NewConfig(dsn *Dsn, maxAttempts int, interval time.Duration) *Config {
 
 func DefaultConfig() *Config {
 	// Create logger
-	logger := log.Default()
+	logger := log.NewLogger("mysql-config")
 
 	// Check if MySQL attempts have been defined in env
 	max := os.Getenv("MYSQL_MAX_ATTEMPTS")

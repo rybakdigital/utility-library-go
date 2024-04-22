@@ -3,6 +3,7 @@ module github.com/rybakdigital/utility-library-go
 go 1.21.1
 
 require (
+	github.com/apsdehal/go-logger v0.0.0-20190515212710-b0d6ccfee0e6
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0

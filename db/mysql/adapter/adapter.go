@@ -9,8 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var logger *log.Logger
-
 type Adapter struct {
 	IsConnected bool
 	Logger      *log.Logger

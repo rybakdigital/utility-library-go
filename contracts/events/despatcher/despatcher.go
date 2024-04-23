@@ -2,6 +2,8 @@ package despatcher
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
 
 	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
@@ -30,8 +32,12 @@ func New() *Despatcher {
 	// Log new despatcher
 	d.Logger.Printf("Created new Event Despatcher")
 
-	d.Listener.Adapters.Add(NewSimpleAdapter("Simple", 1))
-	d.Listener.Adapters.Add(NewSimpleAdapter("Other", 2))
+	numAdapters := 10
+
+	for i := 0; i < numAdapters; i++ {
+		itner := rand.Intn(3)
+		d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
+	}
 
 	// Start listening to events
 	go d.Listener.Listen()

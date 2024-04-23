@@ -2,6 +2,7 @@ package despatcher
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 )
@@ -28,14 +29,23 @@ func NewSimpleAdapter(name string, interval int) *SimpleAdapter {
 	return &SimpleAdapter{Name: name, Interval: interval}
 }
 
-func (a *SimpleAdapter) Receive(events chan Message) {
+func (a *SimpleAdapter) Receive(events chan Message, stopCh chan bool, feedbackCh chan bool) {
 	i := 0
 	for {
+		select {
+		case <-stopCh:
+			log.Println("Received request to stop the messages")
+			feedbackCh <- true
+			return
+		default:
+		}
 		time.Sleep(time.Second * time.Duration(a.Interval))
 		msg := &SimpleMessage{
 			Id:   strconv.Itoa(i),
 			Data: fmt.Sprintf("Adapter %s: Message received", a.Name),
 		}
+
+		log.Printf("Sending message: %d", i)
 		events <- msg
 		i++
 	}

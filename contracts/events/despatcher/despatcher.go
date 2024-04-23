@@ -18,7 +18,7 @@ type Despatcher struct {
 	Listener *Listener
 }
 
-func New() *Despatcher {
+func New(testAdapters int, testMessages int) *Despatcher {
 	// Create logger
 	log := log.NewLogger("event-despatcher")
 
@@ -32,9 +32,7 @@ func New() *Despatcher {
 	// Log new despatcher
 	d.Logger.Printf("Created new Event Despatcher")
 
-	numAdapters := 10
-
-	for i := 0; i < numAdapters; i++ {
+	for i := 0; i < testAdapters; i++ {
 		itner := rand.Intn(3)
 		d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
 	}

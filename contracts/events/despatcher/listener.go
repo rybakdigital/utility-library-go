@@ -16,6 +16,7 @@ type Listener struct {
 	Logger      *log.Logger
 	Subscribers mapset.Set[Subscriber]
 	Adapters    mapset.Set[ListenerAdapter]
+	MaxMessages int
 }
 
 func NewListener(logger *log.Logger) *Listener {
@@ -47,7 +48,7 @@ func (l *Listener) Listen() {
 				l.Logger.Printf("Received message %d: Message ID %s: %s", i, message.GetId(), message.GetData())
 				i++
 
-				if i == 200 {
+				if i == l.MaxMessages {
 					close(stopCh)
 				}
 			case <-feedbackCh:

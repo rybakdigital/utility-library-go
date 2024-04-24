@@ -21,12 +21,15 @@ type Despatcher struct {
 func New(testAdapters int, testMessages int) *Despatcher {
 	// Create logger
 	log := log.NewLogger("event-despatcher")
+	list := NewListener(log)
+	list.MaxMessages = testMessages
 
 	// Create new despatcher
 	d := &Despatcher{
 		Logger:   log,
 		Adapters: mapset.NewSet[Adapter](),
-		Listener: NewListener(log),
+		Listener: list,
+		// Listener: NewListener(log),
 	}
 
 	// Log new despatcher

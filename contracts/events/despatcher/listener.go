@@ -1,6 +1,7 @@
 package despatcher
 
 import (
+	"context"
 	"sync"
 
 	log "github.com/rybakdigital/utility-library-go/logging/logger"
@@ -27,11 +28,12 @@ func NewListener(logger *log.Logger) *Listener {
 	}
 }
 
-func (l *Listener) Listen() {
+func (l *Listener) Listen(ctx context.Context) {
 	messages := make(chan Message)
 	stopCh := make(chan bool)
 	feedbackCh := make(chan bool)
 	senders := 0
+	isClosed := false
 	var wg sync.WaitGroup
 	wg.Add(1)
 	for _, adapter := range l.Adapters.ToSlice() {
@@ -61,6 +63,13 @@ func (l *Listener) Listen() {
 					l.Logger.Printf("All senders stopped sending messages. Closing channel")
 					return
 				}
+			case <-ctx.Done():
+				l.Logger.InfoF(">>>Received signal to shutdown listener")
+				if !isClosed {
+					close(stopCh)
+				}
+				isClosed = true
+				//close(stopCh)
 			}
 		}
 	}()

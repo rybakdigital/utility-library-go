@@ -1,6 +1,7 @@
 package despatcher
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -40,9 +41,6 @@ func New(testAdapters int, testMessages int) *Despatcher {
 		d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
 	}
 
-	// Start listening to events
-	go d.Listener.Listen()
-
 	return d
 }
 
@@ -55,4 +53,8 @@ func (d *Despatcher) Despatch(e Event, name string) error {
 	}
 
 	return nil
+}
+
+func (d *Despatcher) Shutdown(ctx context.Context) {
+	d.Logger.InfoF("Received request to shutdown")
 }

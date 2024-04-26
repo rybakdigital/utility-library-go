@@ -23,7 +23,7 @@ func New(testAdapters int, testMessages int) *Despatcher {
 	// Create logger
 	log := log.NewLogger("event-despatcher")
 	list := NewListener(log)
-	list.MaxMessages = testMessages
+	//list.MaxMessages = testMessages
 
 	// Create new despatcher
 	d := &Despatcher{
@@ -57,4 +57,6 @@ func (d *Despatcher) Despatch(e Event, name string) error {
 
 func (d *Despatcher) Shutdown(ctx context.Context) {
 	d.Logger.InfoF("Received request to shutdown")
+	d.Listener.IsListening()
+	d.Logger.InfoF("Shutdown complete")
 }

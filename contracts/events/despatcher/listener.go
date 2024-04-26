@@ -3,6 +3,7 @@ package despatcher
 import (
 	"context"
 	"sync"
+	"time"
 
 	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
@@ -14,10 +15,11 @@ type ListenerAdapter interface {
 }
 
 type Listener struct {
-	Logger      *log.Logger
-	Subscribers mapset.Set[Subscriber]
-	Adapters    mapset.Set[ListenerAdapter]
-	MaxMessages int
+	Logger          *log.Logger
+	Subscribers     mapset.Set[Subscriber]
+	Adapters        mapset.Set[ListenerAdapter]
+	ReceiveMessages bool
+	Listens         bool
 }
 
 func NewListener(logger *log.Logger) *Listener {
@@ -29,11 +31,11 @@ func NewListener(logger *log.Logger) *Listener {
 }
 
 func (l *Listener) Listen(ctx context.Context) {
+	l.Listens = true
 	messages := make(chan Message)
 	stopCh := make(chan bool)
 	feedbackCh := make(chan bool)
 	senders := 0
-	isClosed := false
 	var wg sync.WaitGroup
 	wg.Add(1)
 	for _, adapter := range l.Adapters.ToSlice() {
@@ -44,15 +46,11 @@ func (l *Listener) Listen(ctx context.Context) {
 	go func() {
 		i := 0
 		defer wg.Done()
-		for {
+		for senders > 0 {
 			select {
 			case message := <-messages:
 				l.Logger.Printf("Received message %d: Message ID %s: %s", i, message.GetId(), message.GetData())
 				i++
-
-				if i == l.MaxMessages {
-					close(stopCh)
-				}
 			case <-feedbackCh:
 				l.Logger.Printf("Sender stopped sending messages")
 				senders -= 1
@@ -64,16 +62,25 @@ func (l *Listener) Listen(ctx context.Context) {
 					return
 				}
 			case <-ctx.Done():
-				l.Logger.InfoF(">>>Received signal to shutdown listener")
-				if !isClosed {
+				if !l.ReceiveMessages {
 					close(stopCh)
 				}
-				isClosed = true
-				//close(stopCh)
+				l.ReceiveMessages = true
 			}
 		}
 	}()
 
 	wg.Wait()
-	l.Logger.Printf("All messages have been processed. Closing listener")
+	l.Listens = false
+	l.Logger.Printf("All messages have been processed. There are %d active senders. Closing listener", senders)
+}
+
+func (l *Listener) IsListening() {
+	for {
+		if !l.Listens {
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }

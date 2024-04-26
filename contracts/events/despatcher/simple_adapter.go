@@ -34,7 +34,7 @@ func (a *SimpleAdapter) Receive(events chan Message, stopCh chan bool, feedbackC
 	for {
 		select {
 		case <-stopCh:
-			log.Println("Received request to stop the messages")
+			log.Printf("Adapter [%s]: Received request to stop the messages", a.Name)
 			feedbackCh <- true
 			return
 		default:
@@ -42,10 +42,10 @@ func (a *SimpleAdapter) Receive(events chan Message, stopCh chan bool, feedbackC
 		time.Sleep(time.Second * time.Duration(a.Interval))
 		msg := &SimpleMessage{
 			Id:   strconv.Itoa(i),
-			Data: fmt.Sprintf("Adapter %s: Message received", a.Name),
+			Data: fmt.Sprintf("Adapter [%s]: Message received", a.Name),
 		}
 
-		log.Printf("Sending message: %d", i)
+		log.Printf("Adapter [%s]: Sending message: %d", a.Name, i)
 		events <- msg
 		i++
 	}

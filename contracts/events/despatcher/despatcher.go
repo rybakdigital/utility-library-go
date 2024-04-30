@@ -57,6 +57,6 @@ func (d *Despatcher) Despatch(e Event, name string) error {
 
 func (d *Despatcher) Shutdown(ctx context.Context) {
 	d.Logger.InfoF("Received request to shutdown")
-	d.Listener.IsListening()
+	d.Listener.WaitForListenersToClose()
 	d.Logger.InfoF("Shutdown complete")
 }

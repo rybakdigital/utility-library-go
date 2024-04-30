@@ -55,7 +55,7 @@ func (l *Listener) Listen(ctx context.Context) {
 		receivers++
 	}
 
-	// We can now start processing incomming messages
+	// We can now start processing incoming messages
 	go func() {
 		i := 0
 		defer wg.Done()

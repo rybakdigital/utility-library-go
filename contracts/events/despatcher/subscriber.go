@@ -1,3 +1,5 @@
 package despatcher
 
-type Subscriber struct{}
+type Subscriber interface {
+	Process(m Message)
+}

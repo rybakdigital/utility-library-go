@@ -13,8 +13,9 @@ type SimpleAdapter struct {
 }
 
 type SimpleMessage struct {
-	Id   string
-	Data string
+	Id        string
+	Data      string
+	EventName string
 }
 
 func (m *SimpleMessage) GetId() string {
@@ -23,6 +24,10 @@ func (m *SimpleMessage) GetId() string {
 
 func (m *SimpleMessage) GetData() []byte {
 	return []byte(m.Data)
+}
+
+func (m *SimpleMessage) GetEventName() string {
+	return m.EventName
 }
 
 func NewSimpleAdapter(name string, interval int) *SimpleAdapter {
@@ -41,8 +46,9 @@ func (a *SimpleAdapter) Receive(events chan Message, stopCh chan bool, feedbackC
 		}
 		time.Sleep(time.Second * time.Duration(a.Interval))
 		msg := &SimpleMessage{
-			Id:   strconv.Itoa(i),
-			Data: fmt.Sprintf("Adapter [%s]: Message received", a.Name),
+			Id:        strconv.Itoa(i),
+			Data:      fmt.Sprintf("Adapter [%s]: Message received", a.Name),
+			EventName: "user.created",
 		}
 
 		log.Printf("Adapter [%s]: Sending message: %d", a.Name, i)

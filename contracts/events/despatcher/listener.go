@@ -44,10 +44,14 @@ func (l *Listener) Listen(ctx context.Context) {
 	feedbackCh := make(chan bool)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	msgCounter := &sync.WaitGroup{}
 
 	// Monitor number of active Adapters (Receivers)
 	receivers := 0
+
+	// Monitor number of messages processed
+	messagesToBeProcessedCount := 0
+	processedMessagesCount := 0
 
 	// Tell Adapters to start receiving messages
 	for _, adapter := range l.Adapters.ToSlice() {
@@ -56,6 +60,7 @@ func (l *Listener) Listen(ctx context.Context) {
 	}
 
 	// We can now start processing incoming messages
+	wg.Add(1)
 	go func() {
 		i := 0
 		defer wg.Done()
@@ -63,6 +68,18 @@ func (l *Listener) Listen(ctx context.Context) {
 			select {
 			case message := <-messages:
 				l.Logger.Printf("Received message %d: Message ID %s: %s", i, message.GetId(), message.GetData())
+				for _, subscriber := range l.Subscribers.ToSlice() {
+					l.Logger.Printf("Subscriber %s has active subscription to the following events %s", subscriber.GetName(), subscriber.GetSubscribedEvents().String())
+					if subscriber.GetSubscribedEvents().Contains(message.GetEventName()) {
+						l.Logger.Printf("Forwarding message %s for event %s to subscriber %s", message.GetId(), message.GetEventName(), subscriber.GetName())
+						msgCounter.Add(1)
+						go func(subscriber Subscriber) {
+							defer msgCounter.Done()
+							subscriber.Process(message)
+						}(subscriber)
+						messagesToBeProcessedCount++
+					}
+				}
 				i++
 			case <-feedbackCh:
 				// Receiver has been evicted from the pool
@@ -90,10 +107,13 @@ func (l *Listener) Listen(ctx context.Context) {
 
 	// Wait for all messages to be received
 	wg.Wait()
+	msgCounter.Wait()
 
 	// Set Listener to inactive mode
 	l.Listens = false
 	l.Logger.Printf("All messages have been processed. There are %d active receivers. Closing listener", receivers)
+	l.Logger.Printf("Total messages send for processing: %d", messagesToBeProcessedCount)
+	l.Logger.Printf("Total messages processed: %d", processedMessagesCount)
 }
 
 // WaitForListenersToClose for all Adapters to stop sending messages

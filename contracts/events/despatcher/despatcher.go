@@ -19,7 +19,7 @@ type Despatcher struct {
 	Listener *Listener
 }
 
-func New(testAdapters int, testMessages int) *Despatcher {
+func New(testAdapters int, testMessages int, testSubscribers int) *Despatcher {
 	// Create logger
 	log := log.NewLogger("event-despatcher")
 	list := NewListener(log)
@@ -39,6 +39,14 @@ func New(testAdapters int, testMessages int) *Despatcher {
 	for i := 0; i < testAdapters; i++ {
 		itner := rand.Intn(3)
 		d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
+	}
+
+	for i := 0; i < testSubscribers; i++ {
+		events := []string{"user.deleted"}
+		if i > 0 {
+			events = append(events, "user.created")
+		}
+		d.Listener.Subscribers.Add(NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events))
 	}
 
 	return d

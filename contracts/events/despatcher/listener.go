@@ -21,7 +21,7 @@ type ListenerAdapter interface {
 // by telling them to stop process any more messages.
 type Listener struct {
 	Logger          *log.Logger
-	Subscribers     mapset.Set[Subscriber]
+	Subscribers     []Subscriber
 	Adapters        mapset.Set[ListenerAdapter]
 	Subscriptions   map[string][]Subscriber
 	ReceiveMessages bool
@@ -30,7 +30,7 @@ type Listener struct {
 
 func NewListener(logger *log.Logger) *Listener {
 	return &Listener{
-		Subscribers:   mapset.NewSet[Subscriber](),
+		Subscribers:   []Subscriber{},
 		Adapters:      mapset.NewSet[ListenerAdapter](),
 		Subscriptions: map[string][]Subscriber{},
 		Logger:        logger,
@@ -45,10 +45,11 @@ func (l *Listener) Listen(ctx context.Context) {
 	stopCh := make(chan bool)
 	feedbackCh := make(chan bool)
 
-	var wg sync.WaitGroup
+	// Track active routines
+	wg := sync.WaitGroup{}
 	msgCounter := &sync.WaitGroup{}
 
-	// Monitor number of active Adapters (Receivers)
+	// Monitor number of active ListenerAdapters (Receivers)
 	receivers := 0
 
 	// Monitor number of messages processed
@@ -136,6 +137,20 @@ func (l *Listener) WaitForListenersToClose() {
 	}
 }
 
+// AddSubscription adds active subscription to the Listener for given event
+// Messages of that event type will be forwarded to the specified Subscriber
 func (l *Listener) AddSubscription(eventName string, subscriber Subscriber) {
 	l.Subscriptions[eventName] = append(l.Subscriptions[eventName], subscriber)
+}
+
+// AddSubscriber adds given Subscriber to the Listener
+// In addition it automatically imports all of the Subscriber Subscriptions
+func (l *Listener) AddSubscriber(subscriber Subscriber) {
+	// Add Subscriber
+	l.Subscribers = append(l.Subscribers, subscriber)
+
+	// Import Subscriber subscriptions to Listener
+	for _, event := range subscriber.GetSubscribedEvents().ToSlice() {
+		l.AddSubscription(event, subscriber)
+	}
 }

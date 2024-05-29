@@ -48,10 +48,7 @@ func New(testAdapters int, testMessages int, testSubscribers int) *Despatcher {
 		}
 
 		subscriber := NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events)
-		d.Listener.Subscribers.Add(subscriber)
-		for _, event := range subscriber.GetSubscribedEvents().ToSlice() {
-			d.Listener.AddSubscription(event, subscriber)
-		}
+		d.Listener.AddSubscriber(subscriber)
 	}
 
 	return d

@@ -23,15 +23,17 @@ type Listener struct {
 	Logger          *log.Logger
 	Subscribers     mapset.Set[Subscriber]
 	Adapters        mapset.Set[ListenerAdapter]
+	Subscriptions   map[string][]Subscriber
 	ReceiveMessages bool
 	Listens         bool
 }
 
 func NewListener(logger *log.Logger) *Listener {
 	return &Listener{
-		Subscribers: mapset.NewSet[Subscriber](),
-		Adapters:    mapset.NewSet[ListenerAdapter](),
-		Logger:      logger,
+		Subscribers:   mapset.NewSet[Subscriber](),
+		Adapters:      mapset.NewSet[ListenerAdapter](),
+		Subscriptions: map[string][]Subscriber{},
+		Logger:        logger,
 	}
 }
 
@@ -51,7 +53,6 @@ func (l *Listener) Listen(ctx context.Context) {
 
 	// Monitor number of messages processed
 	messagesToBeProcessedCount := 0
-	processedMessagesCount := 0
 
 	// Tell Adapters to start receiving messages
 	for _, adapter := range l.Adapters.ToSlice() {
@@ -62,25 +63,33 @@ func (l *Listener) Listen(ctx context.Context) {
 	// We can now start processing incoming messages
 	wg.Add(1)
 	go func() {
-		i := 0
 		defer wg.Done()
 		for receivers > 0 {
 			select {
 			case message := <-messages:
-				l.Logger.Printf("Received message %d: Message ID %s: %s", i, message.GetId(), message.GetData())
-				for _, subscriber := range l.Subscribers.ToSlice() {
-					l.Logger.Printf("Subscriber %s has active subscription to the following events %s", subscriber.GetName(), subscriber.GetSubscribedEvents().String())
-					if subscriber.GetSubscribedEvents().Contains(message.GetEventName()) {
-						l.Logger.Printf("Forwarding message %s for event %s to subscriber %s", message.GetId(), message.GetEventName(), subscriber.GetName())
+				l.Logger.Printf("Received message for event type %s : Message ID %s: %s", message.GetEventName(), message.GetId(), message.GetData())
+
+				// Find subscriptions for this event
+				l.Logger.Printf("Message ID %s. Checking for subscribers to event %s", message.GetId(), message.GetEventName())
+				if subscriptions, ok := l.Subscriptions[message.GetEventName()]; ok {
+					for _, subscriber := range subscriptions {
+						// Found subscriber for this event
+						l.Logger.Printf("Message ID %s. Subscriber %s has active subscription to event %s", message.GetId(), subscriber.GetName(), message.GetEventName())
+
+						// Increase messages counter to track processed messages
 						msgCounter.Add(1)
+
+						// Forward message to Subscriber
+						l.Logger.Printf("Forwarding Message ID %s for event %s to subscriber %s", message.GetId(), message.GetEventName(), subscriber.GetName())
 						go func(subscriber Subscriber) {
 							defer msgCounter.Done()
+
+							// Forward message
 							subscriber.Process(message)
 						}(subscriber)
 						messagesToBeProcessedCount++
 					}
 				}
-				i++
 			case <-feedbackCh:
 				// Receiver has been evicted from the pool
 				l.Logger.Printf("Receiver has stopped receiving messages")
@@ -113,7 +122,6 @@ func (l *Listener) Listen(ctx context.Context) {
 	l.Listens = false
 	l.Logger.Printf("All messages have been processed. There are %d active receivers. Closing listener", receivers)
 	l.Logger.Printf("Total messages send for processing: %d", messagesToBeProcessedCount)
-	l.Logger.Printf("Total messages processed: %d", processedMessagesCount)
 }
 
 // WaitForListenersToClose for all Adapters to stop sending messages
@@ -126,4 +134,8 @@ func (l *Listener) WaitForListenersToClose() {
 
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func (l *Listener) AddSubscription(eventName string, subscriber Subscriber) {
+	l.Subscriptions[eventName] = append(l.Subscriptions[eventName], subscriber)
 }

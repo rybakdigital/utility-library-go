@@ -46,7 +46,12 @@ func New(testAdapters int, testMessages int, testSubscribers int) *Despatcher {
 		if i > 0 {
 			events = append(events, "user.created")
 		}
-		d.Listener.Subscribers.Add(NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events))
+
+		subscriber := NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events)
+		d.Listener.Subscribers.Add(subscriber)
+		for _, event := range subscriber.GetSubscribedEvents().ToSlice() {
+			d.Listener.AddSubscription(event, subscriber)
+		}
 	}
 
 	return d

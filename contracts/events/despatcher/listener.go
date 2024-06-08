@@ -107,7 +107,9 @@ func (l *Listener) Listen(ctx context.Context) {
 			case <-ctx.Done():
 				// We have received signal to stop receiving further messages
 				// Let's inform Receivers by sending signal on the stopCh channel
+				l.Logger.Printf("Listener: received context.Done flag")
 				if !l.ReceiveMessages {
+					l.Logger.Printf("Listener: informing ListenerAdapters to stop listening by sending signal on the stopCh channel")
 					close(stopCh)
 				}
 				l.ReceiveMessages = true

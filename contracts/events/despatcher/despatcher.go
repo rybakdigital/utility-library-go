@@ -2,9 +2,8 @@ package despatcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"math/rand"
-	"strconv"
 
 	log "github.com/rybakdigital/utility-library-go/logging/logger"
 
@@ -22,47 +21,55 @@ type Despatcher struct {
 func New(testAdapters int, testMessages int, testSubscribers int) *Despatcher {
 	// Create logger
 	log := log.NewLogger("event-despatcher")
-	list := NewListener(log)
-	//list.MaxMessages = testMessages
 
 	// Create new despatcher
 	d := &Despatcher{
 		Logger:   log,
 		Adapters: mapset.NewSet[Adapter](),
-		Listener: list,
-		// Listener: NewListener(log),
+		Listener: NewListener(log),
 	}
 
 	// Log new despatcher
 	d.Logger.Printf("Created new Event Despatcher")
 
-	for i := 0; i < testAdapters; i++ {
-		itner := rand.Intn(3)
-		d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
-	}
+	// for i := 0; i < testAdapters; i++ {
+	// 	itner := rand.Intn(3)
+	// 	d.Listener.Adapters.Add(NewSimpleAdapter("Simple-"+strconv.Itoa(i), itner+1))
+	// }
 
-	for i := 0; i < testSubscribers; i++ {
-		events := []string{"user.deleted"}
-		if i > 0 {
-			events = append(events, "user.created")
-		}
+	// for i := 0; i < testSubscribers; i++ {
+	// 	events := []string{"user.deleted"}
+	// 	if i > 0 {
+	// 		events = append(events, "user.created")
+	// 	}
 
-		subscriber := NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events)
-		d.Listener.AddSubscriber(subscriber)
-	}
+	// 	subscriber := NewSimpleSubscriber("Simple-"+strconv.Itoa(i), events)
+	// 	d.Listener.AddSubscriber(subscriber)
+	// }
 
 	return d
 }
 
-func (d *Despatcher) Despatch(e Event, name string) error {
+func (d *Despatcher) Despatch(e Event, name string) ([]Receipt, error) {
 	// Get adapters and send the message
-	for _, adapter := range d.Adapters.ToSlice() {
-		receipt, err := adapter.Send(e, name)
-		fmt.Println(receipt)
-		fmt.Println(err)
+	if d.Adapters.IsEmpty() {
+		msg := fmt.Sprintf("Tried to despatch event %s but no adapters were configured", name)
+		d.Logger.Printf(msg)
+		return nil, errors.New(msg)
 	}
 
-	return nil
+	var receipts []Receipt
+	for _, adapter := range d.Adapters.ToSlice() {
+		receipt, err := adapter.Send(e, name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		d.Logger.Printf("Adapter %s has sent the message. Receipt ID: %s", adapter.GetName(), receipt.GetId())
+	}
+
+	return receipts, nil
 }
 
 func (d *Despatcher) Shutdown(ctx context.Context) {

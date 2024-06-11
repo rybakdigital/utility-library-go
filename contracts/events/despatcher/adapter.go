@@ -1,5 +1,6 @@
 package despatcher
 
 type Adapter interface {
-	Send(e Event, name string) (*Receipt, error)
+	GetName() string
+	Send(e Event, name string) (Receipt, error)
 }

@@ -50,19 +50,23 @@ func New(testAdapters int, testMessages int, testSubscribers int) *Despatcher {
 	return d
 }
 
-func (d *Despatcher) Despatch(e Event, name string) ([]Receipt, error) {
+func (d *Despatcher) Despatch(e Event) ([]Receipt, error) {
+	d.Logger.Printf("Despatcher received request to despatch event %s with ID: %s", e.GetName(), e.GetEventId())
+
 	// Get adapters and send the message
 	if d.Adapters.IsEmpty() {
-		msg := fmt.Sprintf("Tried to despatch event %s but no adapters were configured", name)
+		msg := fmt.Sprintf("Tried to despatch event %s but no adapters were configured", e.GetEventId())
 		d.Logger.Printf(msg)
 		return nil, errors.New(msg)
 	}
 
 	var receipts []Receipt
 	for _, adapter := range d.Adapters.ToSlice() {
-		receipt, err := adapter.Send(e, name)
+		receipt, err := adapter.Send(e)
 
 		if err != nil {
+			msg := fmt.Sprintf("Error when sending message using adapter %s: %v", adapter.GetName(), err)
+			d.Logger.Printf(msg)
 			return nil, err
 		}
 

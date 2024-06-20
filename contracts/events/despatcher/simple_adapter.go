@@ -1,6 +1,7 @@
 package despatcher
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -13,9 +14,14 @@ type SimpleAdapter struct {
 }
 
 type SimpleMessage struct {
-	Id        string
-	Data      string
-	EventName string
+	Id      string
+	Payload *SimplePayload
+}
+
+type SimplePayload struct {
+	Content   []byte `json:"content"`
+	EventId   string `json:"eventId"`
+	EventName string `json:"eventName"`
 }
 
 func (m *SimpleMessage) GetId() string {
@@ -23,11 +29,29 @@ func (m *SimpleMessage) GetId() string {
 }
 
 func (m *SimpleMessage) GetData() []byte {
-	return []byte(m.Data)
+	data, _ := json.Marshal(&m.Payload)
+	fmt.Println(data)
+	return data
 }
 
 func (m *SimpleMessage) GetEventName() string {
-	return m.EventName
+	return m.Payload.EventName
+}
+
+func (m *SimpleMessage) GetPayload() Payload {
+	return m.Payload
+}
+
+func (p *SimplePayload) GetEventName() string {
+	return p.EventName
+}
+
+func (p *SimplePayload) GetEventId() string {
+	return p.EventId
+}
+
+func (p *SimplePayload) GetContent() []byte {
+	return p.Content
 }
 
 func NewSimpleAdapter(name string, interval int) *SimpleAdapter {
@@ -46,9 +70,11 @@ func (a *SimpleAdapter) Receive(events chan Message, stopCh chan bool, feedbackC
 		}
 		time.Sleep(time.Second * time.Duration(a.Interval))
 		msg := &SimpleMessage{
-			Id:        strconv.Itoa(i),
-			Data:      fmt.Sprintf("Adapter [%s]: Message received", a.Name),
-			EventName: "user.created",
+			Id: strconv.Itoa(i),
+			Payload: &SimplePayload{
+				EventName: "user.created",
+				Content:   []byte(fmt.Sprintf("Adapter [%s]: Message received", a.Name)),
+			},
 		}
 
 		log.Printf("Adapter [%s]: Sending message: %d", a.Name, i)

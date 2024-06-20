@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	log "github.com/rybakdigital/utility-library-go/logging/logger"
@@ -51,11 +52,11 @@ func (a *PubSubAdapter) GetName() string {
 	return AdapterName
 }
 
-func (a *PubSubAdapter) Send(e despatcher.Event) (despatcher.Receipt, error) {
-	a.Logger.Printf("%s: Received request to despatch the message for event %s", a.GetName(), e.GetEventId())
+func (a *PubSubAdapter) Send(m despatcher.Message) (despatcher.Receipt, error) {
+	a.Logger.Printf("%s: Received request to despatch the message for event %s", a.GetName(), m.GetPayload().GetEventId())
 
 	// Set topic
-	topicID := a.Prefix + e.GetName()
+	topicID := a.Prefix + m.GetPayload().GetEventName()
 	a.Logger.Printf("Sending message to topic %s", topicID)
 
 	// Create client
@@ -66,10 +67,22 @@ func (a *PubSubAdapter) Send(e despatcher.Event) (despatcher.Receipt, error) {
 	}
 	defer client.Close()
 
+	// Create Message
+	msg := despatcher.EventMessage{
+		Payload: &despatcher.MessagePayload{
+			EventId:   m.GetPayload().GetEventId(),
+			EventName: m.GetPayload().GetEventName(),
+			Content:   m.GetPayload().GetContent(),
+		},
+	}
+	data, _ := json.Marshal(msg)
+
+	// Select topic to publish message to
 	t := client.Topic(topicID)
 
+	// Publish Message
 	result := t.Publish(ctx, &pubsub.Message{
-		Data: e.GetData(),
+		Data: data,
 	})
 
 	id, err := result.Get(ctx)
@@ -77,7 +90,7 @@ func (a *PubSubAdapter) Send(e despatcher.Event) (despatcher.Receipt, error) {
 		return nil, fmt.Errorf("pubsub: result.Get: %w", err)
 	}
 
-	a.Logger.Printf("Event %s published to topic %s: ID: %v", e.GetEventId(), topicID, id)
+	a.Logger.Printf("Event %s published to topic %s: ID: %v", m.GetPayload().GetEventId(), topicID, id)
 
 	return &Receipt{Id: id}, nil
 }

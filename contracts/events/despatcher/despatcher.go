@@ -62,13 +62,17 @@ func (d *Despatcher) Despatch(e Event) ([]Receipt, error) {
 
 	var receipts []Receipt
 	for _, adapter := range d.Adapters.ToSlice() {
-		receipt, err := adapter.Send(e)
+		// Send event
+		receipt, err := adapter.Send(e.ToMessage())
 
 		if err != nil {
 			msg := fmt.Sprintf("Error when sending message using adapter %s: %v", adapter.GetName(), err)
 			d.Logger.Printf(msg)
 			return nil, err
 		}
+
+		// Add receipt
+		receipts = append(receipts, receipt)
 
 		d.Logger.Printf("Adapter %s has sent the message. Receipt ID: %s", adapter.GetName(), receipt.GetId())
 	}
